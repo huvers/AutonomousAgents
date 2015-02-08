@@ -3,10 +3,14 @@ public abstract class MapFactory {
   int width;
   int height;
   color defaultColor;
-  public MapFactory(int width, int height, color defaultColor) {
+  color emptyColor;
+  color spawnColor;
+  public MapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor) {
     this.width = width;  
     this.height = height;
     this.defaultColor = defaultColor;
+    this.emptyColor = emptyColor;
+    this.spawnColor = spawnColor;
   }
 
   public abstract PImage generateMap();
@@ -16,8 +20,8 @@ public abstract class MapFactory {
 public class RandomMapFactory extends MapFactory {
   int blockSize; // Determines the "resolution" of the map by defining the size of the n by n squares on the map
   float density; // Determines the probability of a particular area being filled with a color
-  public RandomMapFactory(int width, int height, color defaultColor, int blockSize, float density) {
-    super(width, height, defaultColor);
+  public RandomMapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor, int blockSize, float density) {
+    super(width, height, defaultColor, emptyColor, spawnColor);
     this.blockSize = blockSize;
     this.density = density;
   }
@@ -25,6 +29,8 @@ public class RandomMapFactory extends MapFactory {
   public PImage generateMap() {
     PImage img = createImage(width, height, RGB);
     img.loadPixels();
+    
+    boolean addedSpawnPoint = false;
 
     for (int y = 0; y < height; y+=blockSize) {
       for (int x = 0; x < width; x+=blockSize) {
@@ -33,6 +39,10 @@ public class RandomMapFactory extends MapFactory {
           for (int blockY = 0; blockY < blockSize; blockY++) {
             for (int blockX = 0; blockX < blockSize; blockX++) {
               img.pixels[(y+blockY)*width + (x+blockX)] = defaultColor;
+              if (!addedSpawnPoint){
+                img.pixels[(y+blockY)*width + (x+blockX)] = spawnColor;
+                addedSpawnPoint = true;
+              }
             }
           }
         }
@@ -50,8 +60,8 @@ public class LoopMapFactory extends MapFactory {
   float loopDeviation; // Determines how large the twists and turns of the loop are
   float loopWindedness; // Determines the number of twists and turns
   int borderSize; // Determines how much buffer space there is on the edge of the image
-  public LoopMapFactory(int width, int height, color defaultColor, float loopWidth, float loopDeviation, float loopWindedness, int borderSize) {
-    super(width, height, defaultColor);
+  public LoopMapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor, float loopWidth, float loopDeviation, float loopWindedness, int borderSize) {
+    super(width, height, defaultColor, emptyColor, spawnColor);
     this.loopWidth = loopWidth;
     this.loopDeviation = loopDeviation;
     this.loopWindedness = loopWindedness;
@@ -81,20 +91,33 @@ public class LoopMapFactory extends MapFactory {
     graphics.beginDraw();
     graphics.background(defaultColor);
     
+    // Only draw one spawn point
+    boolean addedSpawnPoint = false;
+    PVector spawnPoint = null;
+    
     // Draw lines between each point and connect them
     graphics.noFill();
-    graphics.stroke(255);
     graphics.strokeJoin(ROUND);
     graphics.strokeWeight(loopWidth);
     graphics.beginShape();
     for (int i = 0; i < loopPoints.size(); i++) {
       PVector point = loopPoints.get(i);
+      graphics.stroke(emptyColor);
       graphics.vertex(point.x, point.y);
+      if (!addedSpawnPoint){
+        spawnPoint = point;
+        addedSpawnPoint = true;
+      }
     }
     if (!loopPoints.isEmpty()){
       graphics.vertex(loopPoints.get(0).x, loopPoints.get(0).y);
     }
     graphics.endShape();
+    
+    graphics.strokeWeight(1);
+    graphics.stroke(spawnColor);
+    graphics.point(spawnPoint.x, spawnPoint.y);
+    
     graphics.endDraw();
 
     return graphics.get();
@@ -105,8 +128,8 @@ public class LoopMapFactory extends MapFactory {
 public class MazeMapFactory extends MapFactory {
   int blockSize; // Determines the "resolution" of the map by defining the size of the n by n squares on the map
   float verticalBias; // Influences how many paths go up and down versus left and right. Ranges from 0 to 1.
-  public MazeMapFactory(int width, int height, color defaultColor, int blockSize, float verticalBias) {
-    super(width, height, defaultColor);
+  public MazeMapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor, int blockSize, float verticalBias) {
+    super(width, height, defaultColor, emptyColor, spawnColor);
     this.blockSize = blockSize;
     this.verticalBias = verticalBias;
   }
@@ -121,13 +144,22 @@ public class MazeMapFactory extends MapFactory {
     graphics.beginDraw();
     graphics.background(defaultColor);
     
+    // Only one spawn point should be added
+    boolean addedSpawnPoint = false;
+    
     // Draw the maze
-    graphics.fill(255);
+    graphics.fill(emptyColor);
     graphics.noStroke();
     for (int x = 0; x < grid.length; x++){
       for (int y = 0; y < grid[0].length; y++){
         if (!grid[x][y]){
+          graphics.noStroke();
           graphics.rect(x*blockSize, y*blockSize, blockSize, blockSize);
+          if (!addedSpawnPoint){
+            graphics.stroke(spawnColor);
+            graphics.point(x*blockSize+blockSize/2, x*blockSize + blockSize/2);
+            addedSpawnPoint = true;
+          }
         }
       }
     }
