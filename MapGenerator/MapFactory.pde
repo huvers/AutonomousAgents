@@ -2,26 +2,53 @@
 public abstract class MapFactory {
   int width;
   int height;
-  color defaultColor;
+  color wallColor;
   color emptyColor;
   color spawnColor;
-  public MapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor) {
+  public MapFactory(int width, int height, color wallColor, color emptyColor, color spawnColor) {
     this.width = width;  
     this.height = height;
-    this.defaultColor = defaultColor;
+    this.wallColor = wallColor;
     this.emptyColor = emptyColor;
     this.spawnColor = spawnColor;
   }
 
   public abstract PImage generateMap();
+  
+  // Overlays two maps together so they share the same wall and spawn points
+  public PImage compositeMap(MapFactory map){
+    PImage map2 = map.generateMap();
+    return compositeMap(map2, map);
+  }
+  
+  // Overlays a map and a map generated image.
+  // The source map of theh map image is necessary for knowing what colors mean what 
+  public PImage compositeMap(PImage map2, MapFactory map){
+    PImage map1 = generateMap();
+    
+    map1.loadPixels();
+    map2.loadPixels();
+        
+    for (int i = 0; i < map1.pixels.length; i++){
+      if (map2.pixels[i] == map.wallColor){
+        map1.pixels[i] = wallColor;          
+      }
+      else if (map2.pixels[i] == map.spawnColor){
+        map1.pixels[i] = spawnColor;          
+      }
+    }
+    
+    map1.updatePixels();
+    return map1;
+  }
 }
 
 // Generates noise
 public class RandomMapFactory extends MapFactory {
   int blockSize; // Determines the "resolution" of the map by defining the size of the n by n squares on the map
   float density; // Determines the probability of a particular area being filled with a color
-  public RandomMapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor, int blockSize, float density) {
-    super(width, height, defaultColor, emptyColor, spawnColor);
+  public RandomMapFactory(int width, int height, color wallColor, color emptyColor, color spawnColor, int blockSize, float density) {
+    super(width, height, wallColor, emptyColor, spawnColor);
     this.blockSize = blockSize;
     this.density = density;
   }
@@ -38,7 +65,7 @@ public class RandomMapFactory extends MapFactory {
           // Create borders and generate random squares
           for (int blockY = 0; blockY < blockSize; blockY++) {
             for (int blockX = 0; blockX < blockSize; blockX++) {
-              img.pixels[(y+blockY)*width + (x+blockX)] = defaultColor;
+              img.pixels[(y+blockY)*width + (x+blockX)] = wallColor;
               if (!addedSpawnPoint){
                 img.pixels[(y+blockY)*width + (x+blockX)] = spawnColor;
                 addedSpawnPoint = true;
@@ -60,8 +87,8 @@ public class LoopMapFactory extends MapFactory {
   float loopDeviation; // Determines how large the twists and turns of the loop are
   float loopWindedness; // Determines the number of twists and turns
   int borderSize; // Determines how much buffer space there is on the edge of the image
-  public LoopMapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor, float loopWidth, float loopDeviation, float loopWindedness, int borderSize) {
-    super(width, height, defaultColor, emptyColor, spawnColor);
+  public LoopMapFactory(int width, int height, color wallColor, color emptyColor, color spawnColor, float loopWidth, float loopDeviation, float loopWindedness, int borderSize) {
+    super(width, height, wallColor, emptyColor, spawnColor);
     this.loopWidth = loopWidth;
     this.loopDeviation = loopDeviation;
     this.loopWindedness = loopWindedness;
@@ -89,7 +116,7 @@ public class LoopMapFactory extends MapFactory {
 
     // Draw the background
     graphics.beginDraw();
-    graphics.background(defaultColor);
+    graphics.background(wallColor);
     
     // Only draw one spawn point
     boolean addedSpawnPoint = false;
@@ -128,8 +155,8 @@ public class LoopMapFactory extends MapFactory {
 public class MazeMapFactory extends MapFactory {
   int blockSize; // Determines the "resolution" of the map by defining the size of the n by n squares on the map
   float verticalBias; // Influences how many paths go up and down versus left and right. Ranges from 0 to 1.
-  public MazeMapFactory(int width, int height, color defaultColor, color emptyColor, color spawnColor, int blockSize, float verticalBias) {
-    super(width, height, defaultColor, emptyColor, spawnColor);
+  public MazeMapFactory(int width, int height, color wallColor, color emptyColor, color spawnColor, int blockSize, float verticalBias) {
+    super(width, height, wallColor, emptyColor, spawnColor);
     this.blockSize = blockSize;
     this.verticalBias = verticalBias;
   }
@@ -142,7 +169,7 @@ public class MazeMapFactory extends MapFactory {
     
     // Draw the background
     graphics.beginDraw();
-    graphics.background(defaultColor);
+    graphics.background(wallColor);
     
     // Only one spawn point should be added
     boolean addedSpawnPoint = false;
@@ -280,7 +307,7 @@ public class MazeMapFactory extends MapFactory {
   
   // Turns a maze made of "sticks" into a "block" maze
   boolean[][] wallToBoolean(boolean[][] rightWalls, boolean[][] bottomWalls){
-    // Resizing, final size will be an odd number
+    // Resizing, size will be an odd number
     int numRows = 2*(bottomWalls.length)+1;
     int numCols = 2*(rightWalls[0].length+1)+1;
     boolean[][] grid = new boolean[numCols][numRows];
