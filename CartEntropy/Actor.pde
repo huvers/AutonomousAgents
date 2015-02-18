@@ -34,7 +34,7 @@ class CartActor implements Actor {
   void act() {
     genPosStates(depth);
 
-    println(leftLst.size(), noneLst.size(), rightLst.size());
+    // println(leftLst.size(), noneLst.size(), rightLst.size());
 
     pstate = getMove();
   }
@@ -43,7 +43,8 @@ class CartActor implements Actor {
   void draw(CartEntropy canvas) {
     canvas.stroke(#000000);
     canvas.fill(#FF0000);
-    canvas.ellipse(pstate.pos.x, pstate.pos.y, 16, 16);
+    canvas.image(img, pstate.pos.x - img.width/2, pstate.pos.y - img.height/2);
+    //canvas.ellipse(pstate.pos.x, pstate.pos.y, 16, 16);
 
     canvas.stroke(#FF0000);
     for (PosState ps : leftLst) {
@@ -83,7 +84,7 @@ class CartActor implements Actor {
     leftLst.clear();
     noneLst.clear();
     rightLst.clear();
-
+    
     genPosStates(left, depth - 1, leftLst);
     genPosStates(none, depth - 1, noneLst);
     genPosStates(right, depth - 1, rightLst);
@@ -108,19 +109,30 @@ class CartActor implements Actor {
   // recursive function to generate valid moves depth chances in the future
   void genPosStates(PosState ps, int depth, List lst) {
     if (depth > 0) {
+      if (!this.isValidLoc(ps)) return;
+      
       PosState left = ps.getLeft();
       PosState none = ps.getNone();
       PosState right = ps.getRight();
 
-      if (world.isValidLoc(left.pos)) {
+      if (this.isValidLoc(left)) {
         genPosStates(left, depth - 1, lst);
       }
-      if (world.isValidLoc(none.pos)) {
+      if (this.isValidLoc(none)) {
         genPosStates(none, depth - 1, lst);
       }
-      if (world.isValidLoc(right.pos)) {
+      if (this.isValidLoc(right)) {
         genPosStates(right, depth - 1, lst);
       }
+      // if (world.isValidLoc(left.pos)) {
+      //   genPosStates(left, depth - 1, lst);
+      // }
+      // if (world.isValidLoc(none.pos)) {
+      //   genPosStates(none, depth - 1, lst);
+      // }
+      // if (world.isValidLoc(right.pos)) {
+      //   genPosStates(right, depth - 1, lst);
+      // }
     } else {
       if (world.isValidLoc(ps.pos)) {
         lst.add(ps);
@@ -128,22 +140,38 @@ class CartActor implements Actor {
     }
   }
   
-  /*
-  boolean isValidLocation(PosState ps) {
+  boolean isValidLoc(PosState ps) {
     pushMatrix();
     
-    translate(ps.pos.x - img.width/2, ps.pos.y - img.height/2);
+    fill(255);
+    rect(0,0,10,10);
+    
+    translate(ps.pos.x, ps.pos.y);
     rotate(PVector.angleBetween(ps.dir, new PVector(1,0)));
-    PGraphics dupLayer = createGraphics(width, height, JAVA2D); 
-    dupLayer.loadPixels(); 
-    arrayCopy(pixels, dupLayer.pixels); 
-    dupLayer.updatePixels();
-    dupLayer.image(img, 0, 0);
+    
+    PImage portion = get(0,0,img.width,img.height);
+    portion.loadPixels();
+    img.loadPixels();
+    boolean isValid = true;
+    for (int i = 0; i < portion.pixels.length; i++) {
+      if (red(portion.pixels[i]) < 200 && alpha(img.pixels[i]) < 240) {
+        isValid = false;
+        for (int j = 0; j< portion.pixels.length; j++){
+          print(red(portion.pixels[j]));
+        }
+        break;
+      }
+    }
+    
+    // PGraphics dupLayer = createGraphics(width, height, JAVA2D); 
+    // dupLayer.loadPixels(); 
+    // arrayCopy(pixels, dupLayer.pixels); 
+    // dupLayer.updatePixels();
+    // dupLayer.image(img, 0, 0);
     
     popMatrix();
-    return true;
+    return isValid;
   }
-  */
 
   // class that represents a position and direction
   class PosState {
