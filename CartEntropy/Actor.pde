@@ -43,8 +43,13 @@ class CartActor implements Actor {
   void draw(CartEntropy canvas) {
     canvas.stroke(#000000);
     canvas.fill(#FF0000);
-    canvas.image(img, pstate.pos.x - img.width/2, pstate.pos.y - img.height/2);
-    //canvas.ellipse(pstate.pos.x, pstate.pos.y, 16, 16);
+    
+    canvas.pushMatrix();
+    canvas.translate(pstate.pos.x - img.width/2, pstate.pos.y - img.height/2);
+    canvas.rotate(atan2(pstate.dir.y, pstate.dir.x));
+    canvas.image(img, -img.width/2, -img.height/2);
+    // canvas.ellipse(0,0,10,10);
+    canvas.popMatrix();
 
     canvas.stroke(#FF0000);
     for (PosState ps : leftLst) {
@@ -141,35 +146,22 @@ class CartActor implements Actor {
   }
   
   boolean isValidLoc(PosState ps) {
-    pushMatrix();
+    // return world.isValidLoc(ps.pos);
+    float theta = atan2(pstate.dir.y, pstate.dir.x);
     
-    fill(255);
-    rect(0,0,10,10);
-    
-    translate(ps.pos.x, ps.pos.y);
-    rotate(PVector.angleBetween(ps.dir, new PVector(1,0)));
-    
-    PImage portion = get(0,0,img.width,img.height);
-    portion.loadPixels();
     img.loadPixels();
     boolean isValid = true;
-    for (int i = 0; i < portion.pixels.length; i++) {
-      if (red(portion.pixels[i]) < 200 && alpha(img.pixels[i]) < 240) {
+    for (int i = 0; i < img.pixels.length; i++) {
+      PVector posOnImage = new PVector(i % img.width, i/img.width);
+      PVector posOnScreen = new PVector(posOnImage.x - img.width/2, posOnImage.y - img.height/2);
+      posOnScreen.rotate(theta);
+      posOnScreen.add(ps.pos);
+      if (!world.isValidLoc(posOnScreen) && red(img.pixels[i]) > 240) {
         isValid = false;
-        for (int j = 0; j< portion.pixels.length; j++){
-          print(red(portion.pixels[j]));
-        }
         break;
       }
     }
     
-    // PGraphics dupLayer = createGraphics(width, height, JAVA2D); 
-    // dupLayer.loadPixels(); 
-    // arrayCopy(pixels, dupLayer.pixels); 
-    // dupLayer.updatePixels();
-    // dupLayer.image(img, 0, 0);
-    
-    popMatrix();
     return isValid;
   }
 
