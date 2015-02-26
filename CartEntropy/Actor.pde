@@ -16,7 +16,7 @@ class CartActor implements Actor {
 
   int vel = 8; // pixels moved per step
   int turn = 30; // amount turned per step
-  int depth = 5; // depth of movement tree
+  int depth = 15; // depth of movement tree
   int bredth; // TODO implment bredth restrictions
 
   List<PosState> leftLst = new ArrayList<PosState>();
@@ -32,9 +32,9 @@ class CartActor implements Actor {
 
   // generates the states and selects next movement
   void act() {
-    genPosStates(depth);
-
-    // println(leftLst.size(), noneLst.size(), rightLst.size());
+ //   genPosStates(depth);
+    genMonteCarlo(depth);
+     println(leftLst.size(), noneLst.size(), rightLst.size());
 
     pstate = getMove();
   }
@@ -94,6 +94,21 @@ class CartActor implements Actor {
     genPosStates(none, depth - 1, noneLst);
     genPosStates(right, depth - 1, rightLst);
   }
+  
+   void genMonteCarlo(int depth) {
+    PosState left = pstate.getLeft();
+    PosState none = pstate.getNone();
+    PosState right = pstate.getRight();
+
+    leftLst.clear();
+    noneLst.clear();
+    rightLst.clear();
+    
+    genMonteCarlo(left, depth-1, leftLst);
+    genMonteCarlo(none, depth-1,  noneLst);
+    genMonteCarlo(right, depth-1, rightLst);
+  }
+
 
   // returns the PosState for the list with most elements
   PosState getMove() {
@@ -145,6 +160,36 @@ class CartActor implements Actor {
     }
   }
   
+   // Monte Carlo function for large depth values
+  void genMonteCarlo(PosState ps, int depth, List lst) {
+  int maxTreeSteps = int(pow(3,depth));
+  int simSize;
+  int maxSimSize = 2000;
+  
+  PosState temp;
+  
+  if (maxTreeSteps > maxSimSize){
+    simSize = maxSimSize;
+  }
+  else 
+    simSize = maxTreeSteps;
+   
+  for(int i=0; i < simSize; i++){
+   temp = ps;
+   innerloop:
+     for(int j=0; j < depth; j++){ 
+       temp = temp.getRandom(temp);
+       // don't allow agent to go through obstacle at any intermediate step
+       if(!world.isValidLoc(temp.pos)){
+         break innerloop;
+       }
+     }
+     // check if final location is valid
+     if(world.isValidLoc(temp.pos)){
+       lst.add(temp);
+     }
+    }
+   }
   boolean isValidLoc(PosState ps) {
     // return world.isValidLoc(ps.pos);
     float theta = atan2(pstate.dir.y, pstate.dir.x);
@@ -196,6 +241,20 @@ class CartActor implements Actor {
       dir.rotate(turn * PI / 180);
       PVector pos = PVector.add(this.pos, PVector.mult(dir, vel));
       return new PosState(pos, dir);
+    }
+    
+    // gets random step at each point for Monte Carlo sim
+   PosState getRandom(PosState ps){
+    int randomStep = int(random(1,4));
+    
+    if( randomStep == 1){
+      return ps.getLeft();
+    }
+    else if( randomStep == 2){
+      return ps.getNone();
+    }
+    else
+      return ps.getRight();
     }
   }
 }
