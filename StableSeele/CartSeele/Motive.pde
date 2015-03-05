@@ -1,6 +1,6 @@
 
 abstract class Motive implements Cloneable {
-  double weight = 0;
+  double weight = 1;
   
   void setWeight(double w) {
     weight = w;
@@ -12,6 +12,6 @@ abstract class Motive implements Cloneable {
   
   abstract Action getVote(World world);
   
-  //abstract Object clone();
-  Object clone() { return null; }
+  public abstract Object clone();
+  // Object clone() { return null; }
 }

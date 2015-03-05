@@ -1,10 +1,11 @@
+import java.util.Map.Entry;
 
 class Actor {
   final Map<String, Motive> motives = new HashMap<String, Motive>();
   
   Actor() {}
   Actor(Actor actor) {
-    for (Map.Entry<String, Motive> entry : actor.motives.entrySet()) {
+    for (Entry<String, Motive> entry : actor.motives.entrySet()) {
       this.motives.put(entry.getKey(), (Motive)entry.getValue().clone());
     }
   }
@@ -25,10 +26,15 @@ class Actor {
     Action maxAction = null;
     double maxWeight = Double.MIN_VALUE;
     
-    for (Map.Entry<String, Motive> entry : motives.entrySet()) {
+    for (Entry<String, Motive> entry : motives.entrySet()) {
       Motive m = entry.getValue();
       Action a = m.getVote(world);
-      double w = votes.get(a) + m.getWeight();
+      double w;
+      if (votes.containsKey(a)){
+        w = votes.get(a) + m.getWeight();
+      } else {
+        w = m.getWeight();
+      }
       votes.put(a, w);
       
       if (w > maxWeight) {

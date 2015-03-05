@@ -1,6 +1,6 @@
 
 class Action {
-  String data;
+  String data = "";
   
   Action(String data) {
     this.data = data;
