@@ -1,54 +1,51 @@
 
-final List<PVector> dots = new ArrayList<PVector>(); 
-
+List dots;
+final List<PVector> fdots = new ArrayList<PVector>();
+final List<PVector> ldots = new ArrayList<PVector>();
+final List<PVector> rdots = new ArrayList<PVector>();
 
 class BasicMotive extends Motive {
-  int depth, bredth;
+  int depth;
   
-  BasicMotive(int depth, int bredth) {
-    this.depth = depth;
-    this.bredth = bredth;
-  }
+  BasicMotive(int depth) { this.depth = depth; }
   
-  BasicMotive(BasicMotive motive) {
-    this.depth = motive.depth;
-    this.bredth = motive.bredth;
-  }
-  
-  Action getVote(World world) {
-    List<Action> actions = world.currValidActions();
+  String getVote(World world) {
+    List<String> actions = world.currValidActions();
     
-    Action maxAction = null;
+    String maxAction = null;
     int maxEntropy = Integer.MIN_VALUE;
     
-    for (Action action : actions) {
+    for (String action : actions) {
+      switch (action.charAt(0)) {
+        case 'f': dots = fdots; break; 
+        case 'l': dots = ldots; break;
+        case 'r': dots = rdots; break;
+      }
+         
       int entropy = recursive(world.transform(action), depth - 1);
       if (entropy > maxEntropy) {
         maxAction = action;
         maxEntropy = entropy;
       }
-      //print(action.data + ": " + entropy + " | ");
     }
-    //println();
     return maxAction;
   }
   
   private int recursive(World world, int remainDepth) {    
-    if (remainDepth <= 0) { dots.add(((CartWorld)world).currCart().xya.pos); ;return 1;}
+    if (remainDepth <= 0) { dots.add(((CartWorld)world).currCart().xya.pos); return 1;}
     
     int count = 0;
-    List<Action> actions = world.currValidActions();
+    List<String> actions = world.currValidActions();
     
-    for (Action action : actions) {
+    for (String action : actions) {
       count += recursive(world.transform(action), remainDepth - 1);
     }
     
     return count;
   }
   
-  Object clone() {
-    return new BasicMotive(this);
-  }
+  private BasicMotive(BasicMotive motive) { this.depth = motive.depth; }
+  Motive cpy() { return new BasicMotive(this); }
 }
 
 
@@ -59,61 +56,42 @@ class CartWorld extends World {
   final List<Cart> carts = new LinkedList<Cart>();
   
   CartWorld() {}
-  CartWorld(CartWorld world) {
-    for (Cart c : world.carts) {
-      carts.add(c.clone());
-    }
-  }
   
-  void addCart(Cart cart) {
-    carts.add(cart);
-  }
+  void addCart(Cart cart) { carts.add(cart); }
+  private void nextCart() { carts.add(carts.remove(0)); println(carts); }
   
   World update() {
     World world = this;
     for (int i = 0; i < carts.size(); i++) {
       world = world.transform(currActor().getAction(world));
-      carts.add(carts.remove(0));
+      ((CartWorld)world).nextCart();
     }
     return world;
   }
   
-  Cart currCart() {
-    return carts.get(0);
-  }
+  Cart currCart() { return carts.get(0); }
+  Actor currActor() { return currCart().actor; }
   
-  Actor currActor() {
-    return currCart().actor;
-  }
-  
-  List<Action> currValidActions() {
-    List<Action> lst = new ArrayList<Action>();
+  List<String> currValidActions() {
+    List<String> lst = new ArrayList<String>();
     
     XYA fxya = currCart().getForward();
     XYA lxya = currCart().getLeft();
     XYA rxya = currCart().getRight();
     
-    if (map.get((int)fxya.pos.x, (int)fxya.pos.y) != #000000) {
-      lst.add(new Action("f"));
-    }
-    if (map.get((int)lxya.pos.x, (int)lxya.pos.y) != #000000) {
-      lst.add(new Action("l"));
-    }
-    if (map.get((int)rxya.pos.x, (int)rxya.pos.y) != #000000) {
-      lst.add(new Action("r"));
-    }
+    if (mget(fxya) != #000000) { lst.add("f"); }
+    if (mget(lxya) != #000000) { lst.add("l"); }
+    if (mget(rxya) != #000000) { lst.add("r"); }
     return lst; // TODO
   }
   
-  World transform(Action action) {
+  World transform(String action) {
     CartWorld world = new CartWorld(this);
-    if (action != null){
-      if (action.data.equals("f")) {
-        world.currCart().xya = world.currCart().getForward();
-      } else if (action.data.equals("l")) {
-        world.currCart().xya = world.currCart().getLeft();
-      } else if (action.data.equals("r")) {
-        world.currCart().xya = world.currCart().getRight();
+    if (action != null) {
+      switch (action.charAt(0)) {
+        case 'f': world.currCart().xya = world.currCart().getForward(); break; 
+        case 'l': world.currCart().xya = world.currCart().getLeft(); break;
+        case 'r': world.currCart().xya = world.currCart().getRight(); break;
       }
     }
     return world;
@@ -127,49 +105,27 @@ class CartWorld extends World {
     }
   }
   
-  World clone() {
-    return new CartWorld(this);
-  }
+  private CartWorld(CartWorld world) { for (Cart c : world.carts) carts.add(c.cpy()); }
+  World cpy() { return new CartWorld(this); }
 }
 
 
 
 
 
-final int CART_VEL = 8;
-final int CART_TURN = 30;
-
 class Cart {
-  //PImage sprite;
+  int vel = 8, turn = 30;
   XYA xya;
   Actor actor;
   
-  Cart(int x, int y, float a, Actor actor) {
-    //sprite = loadImage(filename);
-    xya = new XYA(x, y, a);
-    this.actor = actor;
-  }
+  Cart(int x, int y, float deg, Actor actor) { xya = new XYA(x, y, deg); this.actor = actor; }
   
-  Cart(Cart cart) {
-    this.xya = new XYA(cart.xya);
-    this.actor = new Actor(cart.actor);
-  }
+  XYA getForward() { return xya.mv(vel); }
+  XYA getLeft() { return xya.rt(-turn).mv(vel); }
+  XYA getRight() {  return xya.rt(turn).mv(vel); }
   
-  XYA getForward() {
-    return xya.move(CART_VEL);
-  }
-  
-  XYA getLeft() {
-    return xya.turn(-CART_TURN).move(CART_VEL);
-  }
-  
-  XYA getRight() {
-    return xya.turn(CART_TURN).move(CART_VEL);
-  }
-  
-  Cart clone() {
-    return new Cart(this);
-  }
+  private Cart(Cart cart) { this.xya = new XYA(cart.xya); this.actor = new Actor(cart.actor); }
+  Cart cpy() { return new Cart(this); }
 }
 
 
@@ -180,33 +136,12 @@ class XYA {
   PVector pos;
   PVector angle;
   
-  XYA(int x, int y, float a) {
-    pos = new PVector(x, y);
-    angle = PVector.fromAngle(radians(a));
-  }
+  XYA(int x, int y, float deg) { pos = new PVector(x, y); angle = PVector.fromAngle(radians(deg)); }
   
-  XYA(PVector pos, PVector angle) {
-    this.pos = pos;
-    this.angle = angle;
-  }
+  XYA mv(int vel) { return new XYA(PVector.add(pos, PVector.mult(angle, vel)), angle); }
+  XYA rt(float deg) { XYA c = cpy(); c.angle.rotate(radians(deg)); return c; }
   
-  XYA(XYA xya) {
-    this.pos = new PVector(xya.pos.x, xya.pos.y);
-    this.angle = new PVector(xya.angle.x, xya.angle.y);
-  }
-  
-  XYA move(int vel) {
-    return new XYA(PVector.add(pos, PVector.mult(angle, vel)), angle);
-    
-  }
-  
-  XYA turn(float a) {
-    PVector rot = angle.copy();
-    rot.rotate(radians(a));
-    return new XYA(pos, rot);
-  }
-  
-  XYA clone() {
-    return new XYA(this);
-  }
+  private XYA(PVector pos, PVector angle) { this.pos = pos; this.angle = angle; } // dangerous because it doesn't copy PVectors
+  private XYA(XYA xya) { this.pos = new PVector(xya.pos.x, xya.pos.y); this.angle = new PVector(xya.angle.x, xya.angle.y); }
+  XYA cpy() { return new XYA(this); }
 }
