@@ -12,7 +12,7 @@ class BasicMotive extends Motive {
   String getVote(World world) {
     List<String> actions = world.currValidActions();
     
-    String maxAction = null;
+    String maxAction = "";
     int maxEntropy = Integer.MIN_VALUE;
     
     for (String action : actions) {
@@ -48,7 +48,47 @@ class BasicMotive extends Motive {
   Motive cpy() { return new BasicMotive(this); }
 }
 
-
+final int timerReset = 5;
+class AvoidMotive extends Motive {
+  final List<XYA> locations = new LinkedList<XYA>();
+  int timer = timerReset;
+  XYA avg = null;
+  
+  AvoidMotive() { }
+  
+  String getVote(World world) {
+    timer--;
+    if (timer == 0) { locations.add(((Cart)world.currActor()).xya.cpy()); avg = avgLocation(); timer = timerReset; }
+    if (avg == null) { return ""; }
+    
+    List<String> actions = world.currValidActions();
+    
+    XYA currLoc = ( (Cart)(world.currActor()) ).xya;
+    String maxAction = "";
+    float maxDistance = 0;
+    
+    for (String action : actions) {
+      World possible = world.transform(action);
+      XYA nextLoc = ( (Cart)(possible.currActor()) ).xya;
+      
+      float dist = currLoc.dist(nextLoc);
+      if (dist > maxDistance) { maxDistance = dist; maxAction = action; }
+    }
+    return maxAction;
+  }
+  
+  private XYA avgLocation() {
+    int avgx = 0, avgy = 0;
+    if (locations.size() == 0) { return null; }
+    for (XYA xya : locations) { avgx += xya.pos.x; avgy += xya.pos.y; }
+    avgx /= locations.size();
+    avgy /= locations.size();
+    return new XYA(avgx, avgy, 0);    
+  }
+  
+  private AvoidMotive(AvoidMotive motive) { for (XYA xya : motive.locations) { locations.add(xya.cpy()); } timer = motive.timer; avg = motive.avg; weight = motive.weight; }
+  Motive cpy() { return new AvoidMotive(this); }
+}
 
 
 
@@ -87,7 +127,7 @@ class CartWorld extends World {
   
   World transform(String action) {
     CartWorld world = new CartWorld(this);
-    if (action != null) {
+    if (action != "") {
       switch (action.charAt(0)) {
         case 'f': world.currCart().xya = world.currCart().getForward(); break; 
         case 'l': world.currCart().xya = world.currCart().getLeft(); break;
@@ -114,7 +154,7 @@ class CartWorld extends World {
 
 
 class Cart extends Actor {
-  int vel = 15, turn = 30;
+  int vel = 8, turn = 30;
   XYA xya;
   
   Cart(int x, int y, float deg) { xya = new XYA(x, y, deg); }
@@ -132,7 +172,7 @@ class Cart extends Actor {
 
 
 
-class XYA {
+class XYA { // TODO make immutable?
   PVector pos;
   PVector angle;
   
@@ -140,6 +180,7 @@ class XYA {
   
   XYA mv(int vel) { return new XYA(PVector.add(pos, PVector.mult(angle, vel)), angle); }
   XYA rt(float deg) { XYA c = cpy(); c.angle.rotate(radians(deg)); return c; }
+  float dist(XYA xya) { float dx = (this.pos.x - xya.pos.x), dy = (this.pos.y - xya.pos.y); return (float)Math.sqrt(dx * dx + dy * dy); }
   
   private XYA(PVector pos, PVector angle) { this.pos = pos; this.angle = angle; } // dangerous because it doesn't copy PVectors
   private XYA(XYA xya) { this.pos = new PVector(xya.pos.x, xya.pos.y); this.angle = new PVector(xya.angle.x, xya.angle.y); }

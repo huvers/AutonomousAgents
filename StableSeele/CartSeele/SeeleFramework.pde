@@ -20,7 +20,7 @@ abstract class World {
 
 
 
-
+import java.util.Set;
 abstract class Actor {
   final List<Motive> motives = new ArrayList<Motive>();
   
@@ -37,11 +37,26 @@ abstract class Actor {
     
     for (Motive motive : motives) {
       String a = motive.getVote(world);
-      float w = (votes.containsKey(a) ? votes.get(a) + motive.getWeight() : motive.getWeight());
-      votes.put(a, w);
-      
-      if (w > maxWeight) { maxAction = a; maxWeight = w; }
+      if (!a.equals("")) { // the ignore option
+        float w = (votes.containsKey(a) ? votes.get(a) + motive.getWeight() : motive.getWeight());
+        votes.put(a, w);
+        if (w > maxWeight) { maxAction = a; maxWeight = w; }
+      }
     }
+    println(votes);
+    
+    // temp
+    Set<String> fields = votes.keySet();
+    String choose = "";
+    int count = 0;
+    for (String field : fields) {
+      count++;
+      if ( 1.0 / count > random(1)) {
+        choose = field;
+      }
+    }
+    maxAction = choose;
+    
     return maxAction;
   }
   
