@@ -12,18 +12,12 @@ void setup() {
   frameRate(20);
   map = loadImage("Map.png");
   world = new CartWorld();
-  Actor actor = new Actor();
-  actor.addMotive("Basic", new BasicMotive(5));  
-  ((CartWorld)world).addCart(new Cart(100,100,0, actor));
-  
-  Actor actor2 = actor.cpy();
-  ((CartWorld)world).addCart(new Cart(100,200,0, actor2));
-  
-  Actor actor3 = actor.cpy();
-  ((CartWorld)world).addCart(new Cart(100,300,0, actor3));
-  
-  Actor actor4 = actor.cpy();
-  ((CartWorld)world).addCart(new Cart(100,400,0, actor4));
+
+  world.addActor(new Cart(400,100,0, new BasicMotive(10)));
+  world.addActor(new Cart(300,100,0, new BasicMotive(5)));
+  world.addActor(new Cart(200,100,0, new BasicMotive(2)));
+  world.addActor(new Cart(100,100,0, new BasicMotive(1)));
+   
 }
 
 void draw() {

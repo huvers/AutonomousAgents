@@ -21,7 +21,7 @@ class BasicMotive extends Motive {
         case 'l': dots = ldots; break;
         case 'r': dots = rdots; break;
       }
-         
+
       int entropy = recursive(world.transform(action), depth - 1);
       if (entropy > maxEntropy) {
         maxAction = action;
@@ -57,20 +57,20 @@ class CartWorld extends World {
   
   CartWorld() {}
   
-  void addCart(Cart cart) { carts.add(cart); }
-  private void nextCart() { carts.add(carts.remove(0)); println(carts); }
+  private void nextCart() { carts.add(carts.remove(0)); }
   
   World update() {
     World world = this;
     for (int i = 0; i < carts.size(); i++) {
-      world = world.transform(currActor().getAction(world));
+      world = world.transform(world.currActor().getAction(world));
       ((CartWorld)world).nextCart();
     }
     return world;
   }
   
+  void addActor(Actor actor) { carts.add((Cart)actor); } //TODO check if Cart
   Cart currCart() { return carts.get(0); }
-  Actor currActor() { return currCart().actor; }
+  Actor currActor() { return currCart(); }
   
   List<String> currValidActions() {
     List<String> lst = new ArrayList<String>();
@@ -113,18 +113,18 @@ class CartWorld extends World {
 
 
 
-class Cart {
-  int vel = 8, turn = 30;
+class Cart extends Actor {
+  int vel = 15, turn = 30;
   XYA xya;
-  Actor actor;
   
-  Cart(int x, int y, float deg, Actor actor) { xya = new XYA(x, y, deg); this.actor = actor; }
+  Cart(int x, int y, float deg) { xya = new XYA(x, y, deg); }
+  Cart(int x, int y, float deg, Motive... motives) {super(motives); xya = new XYA(x, y, deg); }
   
   XYA getForward() { return xya.mv(vel); }
   XYA getLeft() { return xya.rt(-turn).mv(vel); }
   XYA getRight() {  return xya.rt(turn).mv(vel); }
   
-  private Cart(Cart cart) { this.xya = new XYA(cart.xya); this.actor = new Actor(cart.actor); }
+  private Cart(Cart cart) { super(cart); this.xya = new XYA(cart.xya); }
   Cart cpy() { return new Cart(this); }
 }
 

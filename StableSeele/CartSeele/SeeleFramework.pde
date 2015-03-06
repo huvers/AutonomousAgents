@@ -6,6 +6,7 @@
 abstract class World {
   abstract World update();
   
+  abstract void addActor(Actor actor);
   abstract Actor currActor();
   abstract List<String> currValidActions();
   abstract World transform(String action);
@@ -20,48 +21,32 @@ abstract class World {
 
 
 
-class Actor {
-  final Map<String, Motive> motives = new HashMap<String, Motive>();
+abstract class Actor {
+  final List<Motive> motives = new ArrayList<Motive>();
   
   Actor() {}
-  
-  void addMotive(String name, Motive motive) { motives.put(name, motive); }
-  void rmMotive(String name) { motives.remove(name); }
+  Actor(Motive... motives) { for(int i = 0; i < motives.length; i++) { this.motives.add(motives[i]); } }
   
   String getAction(World world) {
-    if (motives.isEmpty()) return null;
+    if (motives.isEmpty()) { return null; }
     
     Map<String, Float> votes = new HashMap<String, Float>();
     
     String maxAction = null;
     Float maxWeight = Float.MIN_VALUE;
     
-    for (Entry<String, Motive> entry : motives.entrySet()) {
-      Motive m = entry.getValue();
-      String a = m.getVote(world);
-      Float w;
-      if (votes.containsKey(a)){
-        w = votes.get(a) + m.getWeight();
-      } else {
-        w = m.getWeight();
-      }
+    for (Motive motive : motives) {
+      String a = motive.getVote(world);
+      float w = (votes.containsKey(a) ? votes.get(a) + motive.getWeight() : motive.getWeight());
       votes.put(a, w);
       
-      if (w > maxWeight) {
-        maxAction = a;
-        maxWeight = w;
-      }
+      if (w > maxWeight) { maxAction = a; maxWeight = w; }
     }
-    
     return maxAction;
   }
   
-  private Actor(Actor actor) {
-    for (Entry<String, Motive> entry : actor.motives.entrySet()) {
-      this.motives.put(entry.getKey(), entry.getValue().cpy());
-    }
-  }
-  Actor cpy() { return new Actor(this); }
+  private Actor(Actor actor) { for (Motive motive : actor.motives) { this.motives.add(motive.cpy()); } }
+  abstract Actor cpy();
 }
 
 
@@ -75,6 +60,4 @@ abstract class Motive {
   abstract String getVote(World world);
   
   abstract Motive cpy();
-  // public abstract Object clone();
-  // Object clone() { return null; }
 }
